@@ -1,388 +1,269 @@
- <!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Check-In Scanner</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        /* This makes everything look nice */
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
-            background-color: #f5f5f5;
-        }
-        
-        h1 { 
-            color: #333; 
-            margin-bottom: 30px;
-        }
-        
-        #qr-reader { 
-            width: 400px; 
-            margin: 0 auto; 
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-        }
-        
-        .result { 
-            margin: 20px; 
-            padding: 20px; 
-            border-radius: 8px; 
-            font-size: 18px;
-            font-weight: bold;
-        }
-        
-        .success { 
-            background: #d4edda; 
-            color: #155724; 
-            border: 2px solid #c3e6cb; 
-        }
-        
-        .error { 
-            background: #f8d7da; 
-            color: #721c24; 
-            border: 2px solid #f5c6cb; 
-        }
-        
-        .info { 
-            background: #d1ecf1; 
-            color: #0c5460; 
-            border: 2px solid #bee5eb; 
-        }
-        
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-        }
-        
-        .stat-item {
-            text-align: center;
-        }
-        
-        .stat-number {
-            font-size: 36px;
-            font-weight: bold;
-            color: #007bff;
-        }
-        
-        .stat-label {
-            font-size: 14px;
-            color: #666;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Durga Puja Check-In Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root { color-scheme: light; --brand:#7b1e32; --gold:#d9a441; --bg:#f7f2eb; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:20px; font-family:Arial,sans-serif; background:var(--bg); color:#242424; }
+    main { width:min(100%,720px); margin:auto; }
+    h1 { color:var(--brand); text-align:center; margin:8px 0 20px; }
+    .panel { background:#fff; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow:0 3px 12px #00000012; }
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:12px; text-align:left; }
+    label { display:block; font-weight:700; margin-bottom:6px; }
+    select,input,button { width:100%; min-height:46px; border-radius:8px; border:1px solid #aaa; padding:10px; font-size:16px; }
+    button { cursor:pointer; color:#fff; background:var(--brand); border:0; font-weight:700; }
+    button.secondary { background:#555; }
+    #qr-reader { width:100%; }
+    .result { border:2px solid; border-radius:10px; padding:18px; font-size:18px; font-weight:700; text-align:center; line-height:1.5; overflow-wrap:anywhere; }
+    .result.success { background:#d4edda; color:#155724; border-color:#9fcbaa; }
+    .result.error { background:#f8d7da; color:#721c24; border-color:#e5a8ae; }
+    .result.info { background:#d1ecf1; color:#0c5460; border-color:#9fd2dc; }
+    .result.warning { background:#fff3cd; color:#664d03; border-color:#e8cf78; }
+    .details { display:grid; grid-template-columns:auto 1fr; gap:5px 12px; margin-top:12px; text-align:left; font-weight:400; }
+    .details dt { font-weight:700; }
+    .details dd { margin:0; }
+    .note { color:#666; font-size:13px; margin:8px 0 0; }
+    @media (max-width:560px) { body{padding:10px}.controls{grid-template-columns:1fr}.panel{padding:12px} }
+  </style>
 </head>
 <body>
-    <h1>🎉 Event Check-In Scanner</h1>
-    
-    <!-- Statistics Display -->
-    <!--<div class="stats">
-        <div class="stat-item">
-            <div class="stat-number" id="checkedInCount">0</div>
-            <div class="stat-label">CHECKED IN</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-number" id="remainingCount">2000</div>
-            <div class="stat-label">REMAINING</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-number" id="percentageCount">0%</div>
-            <div class="stat-label">COMPLETE</div>
-        </div>
-    </div>-->
-    
-    <!-- QR Scanner Area -->
-    <div id="qr-reader"></div>
-    
-    <!-- Results will show here -->
-    <div id="result"></div>
+<main>
+  <h1>Durga Puja Check-In Scanner</h1>
 
-    <script>
-        // ===== CONFIGURATION SECTION =====
-        // REPLACE THESE WITH YOUR ACTUAL VALUES:
-        
-        const API_KEY = 'fb783ae22c46d6fb4a460753fe342dfa';  // Put your API key from Step 1
-        const FORM_ID = '252096867246165';  // Put your Form ID from Step 1
-        
-        // FIELD IDs - Replace with your actual field numbers from Step 1:
-        const FIELD_IDS = {
-            fullName: '4',        // Replace 3 with your Full Name field ID
-            email: '5',           // Replace 4 with your Email field ID
-            paymentMethod: '37',   // Replace 5 with your Payment Method field ID
-            checkinStatusNabami: '83',    // Replace 6 with your Check-in Status nabami field ID
-            numberOf: '77',   // Replace 7 with your Number of People Attending field ID
-            eventDays: '35',    // Replace 8 with your Event days you want attend field ID
-			member: '68',
-			memberType: '69',
-			student: '71'
-        };
+  <section class="panel controls" aria-label="Scanner settings">
+    <div>
+      <label for="eventDay">Event day</label>
+      <select id="eventDay">
+        <option value="Dashami">Dashami</option>
+        <option value="Sasthi">Sasthi</option>
+        <option value="Saptami">Saptami</option>
+        <option value="Ashtami">Ashtami</option>
+        <option value="Nabami">Nabami</option>
+      </select>
+    </div>
+    <div>
+      <label for="apiKey">Jotform API key</label>
+      <input id="apiKey" type="password" autocomplete="off" placeholder="Enter key for this session">
+      <p class="note">Held only in this browser tab; it is not stored in this file.</p>
+    </div>
+    <button id="startButton" type="button">Start scanner</button>
+    <button id="stopButton" class="secondary" type="button" disabled>Stop scanner</button>
+  </section>
 
-        // ===== SCANNER SYSTEM =====
-        
-        let isScanning = true;
-        const scannedCodes = new Set(); // Keeps track of used QR codes
-        //let checkedInTotal = 0; // Counter for checked-in attendees
-        
-        function onScanSuccess(decodedText, decodedResult) {
-            // This function runs every time a QR code is scanned
-            
-            if (!isScanning) return; // Don't scan if we're processing another
-            
-            console.log('QR Code scanned:', decodedText); // For debugging
-            
-            // Check if this QR code was already used
-            if (scannedCodes.has(decodedText)) {
-                showResult('❌ This QR Code Was Already Used!<br>Person is already checked in for Nabami.', 'error');
-                return;
-            }
-            
-            // Extract the submission ID from the QR code
-            const submissionId = extractSubmissionId(decodedText);
-            
-            if (submissionId) {
-                processCheckIn(submissionId, decodedText);
-            } else {
-                showResult('❌ Invalid QR Code<br>This is not a valid event QR code.', 'error');
-            }
-        }
-        
-        function extractSubmissionId(qrData) {
-            // This function finds the submission ID in the QR code data
-            
-            console.log('Extracting ID from:', qrData); // For debugging
-            
-            // Try different patterns the QR code might have:
-            const patterns = [
-                /submission\/(\d+)/,           // Format: .../submission/123456
-                /ID:(\d+)/,                   // Format: ID:123456
-                /https:\/\/.*\/(\d+)/,        // Format: https://anything/123456
-                /^\d+$/                       // Format: Just the number 123456
-            ];
-            
-            for (let pattern of patterns) {
-                const match = qrData.match(pattern);
-                if (match) {
-                    console.log('Found submission ID:', match[1] || match[0]);
-                    return match[1] || match; // Return the number found
-                }
-            }
-            
-            console.log('No submission ID found');
-            return null;
-        }
-        
-        async function processCheckIn(submissionId, qrData) {
-            // This function handles the actual check-in process
-            
-            isScanning = false; // Stop scanning while we process
-            showResult('🔄 Processing Check-In...<br>Please wait...', 'info');
-            
-            try {
-                // Step 1: Get the person's information from Jotform
-                console.log('Getting submission data for ID:', submissionId);
-                const submissionData = await getSubmissionData(submissionId);
+  <section class="panel"><div id="qr-reader"></div></section>
+  <section id="result" aria-live="assertive"></section>
+</main>
 
-                // Step 2: Check if they're already checked in
-                if (!submissionData.hasNabami) {
-                    showResult(`⚠️ No Registration!<br><strong>${submissionData.name.first} ${submissionData.name.last}</strong><br>This person has not registered for Nabami.`, 'error');
-                    setTimeout(() => isScanning = true, 4000); // Resume scanning after 4 seconds
-                    return;
-                }
-                
-                // Step 3: Check if they're already checked in for panchami
-                if (submissionData.alreadyCheckedIn) {
-                    showResult(`⚠️ Already Checked In!<br><strong>${submissionData.name.first} ${submissionData.name.last}</strong><br>This person was already checked in earlier for Nabami.`, 'error');
-                    setTimeout(() => isScanning = true, 4000); // Resume scanning after 4 seconds
-                    return;
-                }
-                
-                // Step 3: Update their status to "Checked In"
-                console.log('Updating check-in status...');
-                await updateSubmissionStatus(submissionId);
-                
-                // Step 4: Mark this QR code as used
-                scannedCodes.add(qrData);
-                
-                // Step 5: Update our counter
-                //checkedInTotal++;
-                //updateStatistics();
-                
-                // Step 6: Show success message
-                if (submissionData.paymentMethod == 'Cash  at Venue'){
-                showResult(`✅ CHECK-IN SUCCESSFUL!<br>
-                           <strong>Welcome ${submissionData.name.first} ${submissionData.name.last}!</strong><br>
-                           Email: ${submissionData.email}<br>
-                           Payment: ${submissionData.paymentMethod}<br>
-                           Number of people: ${submissionData.numberOf}<br>
-                           Time: ${new Date().toLocaleTimeString()}<br>
-						   Member: ${submissionData.member}<br>
-						   Member Type: ${submissionData.memberType}<br>
-						   Student: ${submissionData.student}<br>`, 'warning');
-			   }
-			   else
-			   {
-	
-				showResult(`✅ CHECK-IN SUCCESSFUL!<br>
-						   <strong>Welcome ${submissionData.name.first} ${submissionData.name.last}!</strong><br>
-						   Email: ${submissionData.email}<br>
-						   Payment: ${submissionData.paymentMethod}<br>
-						   Number of people: ${submissionData.numberOf}<br>
-						   Time: ${new Date().toLocaleTimeString()}<br>
-						   Member: ${submissionData.member}<br>
-						   Member Type: ${submissionData.memberType}<br>
-						   Student: ${submissionData.student}<br>`, 'success');
-				}
-                console.log('Check-in completed successfully');
-                
-            } catch (error) {
-                console.error('Check-in error:', error);
-                showResult(`❌ ERROR: ${error.message}<br>Please try again or check manually.`, 'error');
-            }
-            
-            // Resume scanning after 4 seconds
-            setTimeout(() => isScanning = true, 4000);
-        }
-        
-        async function getSubmissionData(submissionId) {
-            // This function gets the person's information from Jotform
-            
-            const url = `https://eu-api.jotform.com/submission/${submissionId}?apiKey=${API_KEY}`;
-            console.log('Fetching from:', url);
-            
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.responseCode !== 200) {
-                throw new Error('QR Code not found - Invalid registration');
-            }
-            
-            const answers = data.content.answers;
-            console.log('Submission answers:', answers);
+<script>
+  'use strict';
 
-            // Extract event days as array (normalize string or array)
-            let eventDaysRaw = answers[FIELD_IDS.eventDays]?.answer || '';
-            let eventDays = [];
+  const FORM_ID = '252096867246165';
+  const API_BASE = 'https://eu-api.jotform.com';
 
-            if (Array.isArray(eventDaysRaw)) {
-                // Already an array from Jotform
-                eventDays = eventDaysRaw.map(day => day.trim());
-            } else if (typeof eventDaysRaw === 'string') {
-                // Comma separated string → split into array
-                eventDays = eventDaysRaw.split(',').map(day => day.trim());
-            } else {
-                eventDays = [];
-            }
+  const FIELD_IDS = Object.freeze({
+    fullName: '4',
+    email: '5',
+    paymentMethod: '37',
+    eventDays: '35',
+    member: '68',
+    memberType: '69',
+    student: '71',
+    numberOf: '77',
+    timestamp: '7'
+  });
 
-            // Check if Nabami is included
-            const hasNabami = eventDays.some(day => day.startsWith("Nabami"));
+  // Exact mappings recovered from the five existing scanners.
+  const EVENT_CONFIG = Object.freeze({
+    Dashami: { checkinField: '57', registrationPrefix: 'Dashami' },
+    Sasthi:   { checkinField: '64', registrationPrefix: 'Sasthi' },
+    Saptami:  { checkinField: '65', registrationPrefix: 'Saptami' },
+    Ashtami:  { checkinField: '66', registrationPrefix: 'Ashtami' },
+    Nabami:   { checkinField: '83', registrationPrefix: 'Nabami' }
+  });
 
-            
-            // Extract the information we need
-            const submissionData = {
-                name: answers[FIELD_IDS.fullName]?.answer || 'Unknown Name',
-                email: answers[FIELD_IDS.email]?.answer || 'No Email',
-                paymentMethod: answers[FIELD_IDS.paymentMethod]?.answer || 'Not required',
-                numberOf: answers[FIELD_IDS.numberOf]?.answer || 'NA',
-                eventDays: Array.isArray(eventDaysRaw) ? eventDaysRaw.join(", ") : eventDaysRaw || 'Unknown',
-                alreadyCheckedIn: answers[FIELD_IDS.checkinStatusAshtami]?.answer === 'Yes',
-				member: answers[FIELD_IDS.member]?.answer || 'No' ,
-				memberType: answers[FIELD_IDS.memberType]?.answer || 'NA' ,
-				student: answers[FIELD_IDS.student]?.answer || 'No' ,
-                hasNabami: hasNabami
-            };
-            
-            console.log('Extracted data:', submissionData);
-            return submissionData;
-        }
-        
-        async function updateSubmissionStatus(submissionId) {
-            // This function marks the person as "Checked In" in Jotform
-            
-            const url = `https://eu-api.jotform.com/submission/${submissionId}?apiKey=${API_KEY}`;
-            console.log('Update url:', url);
-            // Prepare the data to update
-            const updateData = new FormData();
-            updateData.append(`submission[${FIELD_IDS.checkinStatusNabami}]`, 'Yes');
-            updateData.append(`submission[7]`, new Date().toISOString()); // Add timestamp if you have a field for it
-			
-			for (var pair of updateData.entries()) {
-				console.log(pair[0]+ ', ' + pair[1]); 
-			}
-            
-            console.log('Updating submission with check-in status...');
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                body: updateData
-            });
-            
-            const result = await response.json();
-            console.log('Update response:', result);
-            
-            if (result.responseCode !== 200) {
-                throw new Error('Failed to update check-in status in database '+updateData);
-            }
-        }
-        
-        function updateStatistics() {
-            // This function updates the numbers at the top of the page
-            const remaining = 2000 - checkedInTotal;
-            const percentage = Math.round((checkedInTotal / 2000) * 100);
-            
-            document.getElementById('checkedInCount').textContent = checkedInTotal;
-            document.getElementById('remainingCount').textContent = remaining;
-            document.getElementById('percentageCount').textContent = percentage + '%';
-        }
-        
-        function showResult(message, type) {
-            // This function shows messages to the user
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
-            
-            // Also speak the message out loud (optional)
-            if (type === 'success' && 'speechSynthesis' in window) {
-                const speech = new SpeechSynthesisUtterance('Check-in successful');
-                speechSynthesis.speak(speech);
-            }
-        }
-        
-        function onScanFailure(error) {
-            // This runs if scanning fails - we can ignore most errors
-            // console.log('Scan failed:', error);
-        }
-        
-        // ===== START THE SCANNER =====
-        
-        console.log('Starting QR Scanner...');
-        console.log('API Key:', API_KEY);
-        console.log('Form ID:', FORM_ID);
-        console.log('Field IDs:', FIELD_IDS);
-        
-        // Create and start the QR code scanner
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "qr-reader", 
-            { 
-                fps: 10,                    // Scans per second
-                qrbox: { width: 250, height: 250 },  // Size of scan area
-                aspectRatio: 1.0           // Square scanning area
-            }
-        );
-        
-        // Start scanning
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-        
-        // Show initial message
-        showResult('📱 Point camera at QR code to scan<br>Scanner is ready!', 'info');
-        
-    </script>
+  const eventDaySelect = document.getElementById('eventDay');
+  //const apiKeyInput = document.getElementById('apiKey');
+  const apiKeyInput = 'fb783ae22c46d6fb4a460753fe342dfa';
+  const startButton = document.getElementById('startButton');
+  const stopButton = document.getElementById('stopButton');
+  const resultArea = document.getElementById('result');
+
+  let scanner = null;
+  let isProcessing = false;
+  let lockedDay = null;
+  const scannedCodes = new Set();
+
+  function valueOf(answers, fieldId, fallback) {
+    const value = answers?.[fieldId]?.answer;
+    return value === undefined || value === null || value === '' ? fallback : value;
+  }
+
+  function normalizeName(value) {
+    if (value && typeof value === 'object') {
+      return [value.first, value.middle, value.last].filter(Boolean).join(' ') || 'Unknown Name';
+    }
+    return String(value || 'Unknown Name');
+  }
+
+  function normalizeEventDays(value) {
+    if (Array.isArray(value)) return value.map(String).map(v => v.trim()).filter(Boolean);
+    if (typeof value === 'string') return value.split(',').map(v => v.trim()).filter(Boolean);
+    return [];
+  }
+
+  function extractSubmissionId(qrData) {
+    const text = String(qrData).trim();
+    const patterns = [
+      /submission\/(\d+)/i,
+      /ID\s*:\s*(\d+)/i,
+      /https?:\/\/[^\s]+\/(\d+)(?:[/?#]|$)/i,
+      /^(\d+)$/
+    ];
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  }
+
+  function showResult(title, type, lines = []) {
+    resultArea.replaceChildren();
+    const box = document.createElement('div');
+    box.className = `result ${type}`;
+    const heading = document.createElement('div');
+    heading.textContent = title;
+    box.appendChild(heading);
+    if (lines.length) {
+      const list = document.createElement('dl');
+      list.className = 'details';
+      for (const [label, value] of lines) {
+        const dt = document.createElement('dt');
+        const dd = document.createElement('dd');
+        dt.textContent = label;
+        dd.textContent = String(value);
+        list.append(dt, dd);
+      }
+      box.appendChild(list);
+    }
+    resultArea.appendChild(box);
+  }
+
+  async function getSubmissionData(submissionId, day, apiKey) {
+    const url = `${API_BASE}/submission/${encodeURIComponent(submissionId)}?apiKey=${encodeURIComponent(apiKey)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (!response.ok || data.responseCode !== 200 || !data.content?.answers) {
+      throw new Error('QR code not found or registration could not be loaded.');
+    }
+
+    const answers = data.content.answers;
+    const config = EVENT_CONFIG[day];
+    const rawDays = valueOf(answers, FIELD_IDS.eventDays, '');
+    const eventDays = normalizeEventDays(rawDays);
+    return {
+      name: normalizeName(valueOf(answers, FIELD_IDS.fullName, 'Unknown Name')),
+      email: valueOf(answers, FIELD_IDS.email, 'No Email'),
+      paymentMethod: valueOf(answers, FIELD_IDS.paymentMethod, 'Not required'),
+      numberOf: valueOf(answers, FIELD_IDS.numberOf, 'NA'),
+      member: valueOf(answers, FIELD_IDS.member, 'No'),
+      memberType: valueOf(answers, FIELD_IDS.memberType, 'NA'),
+      student: valueOf(answers, FIELD_IDS.student, 'No'),
+      isRegistered: eventDays.some(item => item.toLowerCase().startsWith(config.registrationPrefix.toLowerCase())),
+      alreadyCheckedIn: String(valueOf(answers, config.checkinField, '')).trim().toLowerCase() === 'yes'
+    };
+  }
+
+  async function updateSubmissionStatus(submissionId, day, apiKey) {
+    const config = EVENT_CONFIG[day];
+    const url = `${API_BASE}/submission/${encodeURIComponent(submissionId)}?apiKey=${encodeURIComponent(apiKey)}`;
+    const body = new FormData();
+    body.append(`submission[${config.checkinField}]`, 'Yes');
+    body.append(`submission[${FIELD_IDS.timestamp}]`, new Date().toISOString());
+    const response = await fetch(url, { method: 'POST', body });
+    const data = await response.json();
+    if (!response.ok || data.responseCode !== 200) {
+      throw new Error('Failed to update the Jotform check-in status.');
+    }
+  }
+
+  async function processCheckIn(submissionId, qrData) {
+    if (isProcessing) return;
+    isProcessing = true;
+    const day = lockedDay;
+    const apiKey = apiKeyInput.value.trim();
+    const scanKey = `${day}:${qrData}`;
+    showResult(`Processing ${day} check-in…`, 'info');
+
+    try {
+      if (scannedCodes.has(scanKey)) throw new Error(`This QR code was already scanned for ${day} in this session.`);
+      const person = await getSubmissionData(submissionId, day, apiKey);
+      if (!person.isRegistered) throw new Error(`${person.name} is not registered for ${day}.`);
+      if (person.alreadyCheckedIn) throw new Error(`${person.name} was already checked in for ${day}.`);
+
+      await updateSubmissionStatus(submissionId, day, apiKey);
+      scannedCodes.add(scanKey);
+      const isCash = String(person.paymentMethod).replace(/\s+/g, ' ').trim().toLowerCase() === 'cash at venue';
+      showResult(isCash ? 'CHECK-IN SUCCESSFUL — COLLECT CASH' : 'CHECK-IN SUCCESSFUL', isCash ? 'warning' : 'success', [
+        ['Day', day], ['Name', person.name], ['Email', person.email], ['Payment', person.paymentMethod],
+        ['Number of people', person.numberOf], ['Member', person.member], ['Member type', person.memberType],
+        ['Student', person.student], ['Time', new Date().toLocaleTimeString()]
+      ]);
+      if ('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance('Check-in successful'));
+    } catch (error) {
+      showResult(error.message || 'Check-in failed. Please check manually.', 'error');
+    } finally {
+      window.setTimeout(() => { isProcessing = false; }, 4000);
+    }
+  }
+
+  function onScanSuccess(decodedText) {
+    if (isProcessing) return;
+    const submissionId = extractSubmissionId(decodedText);
+    if (!submissionId) {
+      isProcessing = true;
+      showResult('Invalid QR code. This is not a recognized event registration.', 'error');
+      window.setTimeout(() => { isProcessing = false; }, 4000);
+      return;
+    }
+    processCheckIn(submissionId, decodedText);
+  }
+
+  async function startScanner() {
+    if (!apiKeyInput.value.trim()) {
+      showResult('Enter a Jotform API key before starting the scanner.', 'error');
+      apiKeyInput.focus();
+      return;
+    }
+    lockedDay = eventDaySelect.value;
+    eventDaySelect.disabled = true;
+    apiKeyInput.disabled = true;
+    startButton.disabled = true;
+    stopButton.disabled = false;
+    scanner = new Html5QrcodeScanner('qr-reader', { fps:10, qrbox:{width:250,height:250}, aspectRatio:1 }, false);
+    scanner.render(onScanSuccess, () => {});
+    showResult(`Scanner ready for ${lockedDay}. Point the camera at a QR code.`, 'info');
+  }
+
+  async function stopScanner() {
+    if (scanner) {
+      try { await scanner.clear(); } catch (error) { console.warn('Scanner cleanup:', error); }
+      scanner = null;
+    }
+    lockedDay = null;
+    eventDaySelect.disabled = false;
+    apiKeyInput.disabled = false;
+    startButton.disabled = false;
+    stopButton.disabled = true;
+    showResult('Scanner stopped. Choose a day and start again when ready.', 'info');
+  }
+
+  startButton.addEventListener('click', startScanner);
+  stopButton.addEventListener('click', stopScanner);
+  showResult('Choose the event day, enter the Jotform API key, and start the scanner.', 'info');
+</script>
 </body>
 </html>
-
-
-
