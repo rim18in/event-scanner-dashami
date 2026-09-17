@@ -45,11 +45,6 @@
         <option value="Nabami">Nabami</option>
       </select>
     </div>
-    <div>
-      <label for="apiKey">Jotform API key</label>
-      <input id="apiKey" type="password" autocomplete="off" placeholder="Enter key for this session">
-      <p class="note">Held only in this browser tab; it is not stored in this file.</p>
-    </div>
     <button id="startButton" type="button">Start scanner</button>
     <button id="stopButton" class="secondary" type="button" disabled>Stop scanner</button>
   </section>
@@ -63,6 +58,8 @@
 
   const FORM_ID = '252096867246165';
   const API_BASE = 'https://eu-api.jotform.com';
+  // Replace this placeholder with your Jotform API key. Visible in page source.
+  const API_KEY = 'fb783ae22c46d6fb4a460753fe342dfa';
 
   const FIELD_IDS = Object.freeze({
     fullName: '4',
@@ -86,7 +83,7 @@
   });
 
   const eventDaySelect = document.getElementById('eventDay');
-  const apiKeyInput = 'fb783ae22c46d6fb4a460753fe342dfa';
+
   const startButton = document.getElementById('startButton');
   const stopButton = document.getElementById('stopButton');
   const resultArea = document.getElementById('result');
@@ -151,8 +148,8 @@
     resultArea.appendChild(box);
   }
 
-  async function getSubmissionData(submissionId, day, apiKey) {
-    const url = `${API_BASE}/submission/${encodeURIComponent(submissionId)}?apiKey=${encodeURIComponent(apiKey)}`;
+  async function getSubmissionData(submissionId, day) {
+    const url = `${API_BASE}/submission/${encodeURIComponent(submissionId)}?apiKey=${encodeURIComponent(API_KEY)}`;
     const response = await fetch(url);
     const data = await response.json();
     if (!response.ok || data.responseCode !== 200 || !data.content?.answers) {
@@ -176,9 +173,9 @@
     };
   }
 
-  async function updateSubmissionStatus(submissionId, day, apiKey) {
+  async function updateSubmissionStatus(submissionId, day) {
     const config = EVENT_CONFIG[day];
-    const url = `${API_BASE}/submission/${encodeURIComponent(submissionId)}?apiKey=${encodeURIComponent(apiKey)}`;
+    const url = `${API_BASE}/submission/${encodeURIComponent(submissionId)}?apiKey=${encodeURIComponent(API_KEY)}`;
     const body = new FormData();
     body.append(`submission[${config.checkinField}]`, 'Yes');
     body.append(`submission[${FIELD_IDS.timestamp}]`, new Date().toISOString());
@@ -197,15 +194,13 @@
     showResult(`Processing ${day} check-in…`, 'info');
 
     try {
-      const apiKey = (apiKeyInput?.value ?? '').trim();
-      if (!apiKey) throw new Error('Enter a Jotform API key before scanning.');
       if (!EVENT_CONFIG[day]) throw new Error('Start the scanner before checking in.');
       if (scannedCodes.has(scanKey)) throw new Error(`This QR code was already scanned for ${day} in this session.`);
-      const person = await getSubmissionData(submissionId, day, apiKey);
+      const person = await getSubmissionData(submissionId, day);
       if (!person.isRegistered) throw new Error(`${person.name} is not registered for ${day}.`);
       if (person.alreadyCheckedIn) throw new Error(`${person.name} was already checked in for ${day}.`);
 
-      await updateSubmissionStatus(submissionId, day, apiKey);
+      await updateSubmissionStatus(submissionId, day);
       scannedCodes.add(scanKey);
       const isCash = String(person.paymentMethod).replace(/\s+/g, ' ').trim().toLowerCase() === 'cash at venue';
       showResult(isCash ? 'CHECK-IN SUCCESSFUL — COLLECT CASH' : 'CHECK-IN SUCCESSFUL', isCash ? 'warning' : 'success', [
@@ -234,15 +229,13 @@
   }
 
   async function startScanner() {
-    if (!(apiKeyInput?.value ?? '').trim()) {
-      showResult('Enter a Jotform API key before starting the scanner.', 'error');
-      apiKeyInput?.focus();
+    if (!API_KEY.trim() || API_KEY === 'YOUR_JOTFORM_API_KEY') {
+      showResult('Set API_KEY in index.html before starting the scanner.', 'error');
       return;
     }
     try {
       lockedDay = eventDaySelect.value;
       eventDaySelect.disabled = true;
-      apiKeyInput.disabled = true;
       startButton.disabled = true;
       stopButton.disabled = false;
       scanner = new Html5QrcodeScanner('qr-reader', { fps:10, qrbox:{width:250,height:250}, aspectRatio:1 }, false);
@@ -261,7 +254,6 @@
     }
     lockedDay = null;
     eventDaySelect.disabled = false;
-    apiKeyInput.disabled = false;
     startButton.disabled = false;
     stopButton.disabled = true;
     showResult('Scanner stopped. Choose a day and start again when ready.', 'info');
@@ -269,7 +261,7 @@
 
   startButton.addEventListener('click', startScanner);
   stopButton.addEventListener('click', stopScanner);
-  showResult('Choose the event day, enter the Jotform API key, and start the scanner.', 'info');
+  showResult('Choose the event day and start the scanner.', 'info');
 </script>
 </body>
 </html>
