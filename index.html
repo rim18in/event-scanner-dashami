@@ -115,7 +115,7 @@
 
     const text = String(qrData).trim();
     const patterns = [
-      /Unique\/(\d+)/i,
+      /Submission\/(\d+)/i,
       /ID\s*:\s*(\d+)/i,
       /https?:\/\/[^\s]+\/(\d+)(?:[/?#]|$)/i,
       /^(\d+)$/
@@ -123,6 +123,8 @@
     console.log('Full QR data:', qrData);
     for (const pattern of patterns) {
       const match = text.match(pattern);
+      console.log('match:', match);
+      console.log('pattern:', pattern);
       if (match) return match[1];
     }
     return null;
