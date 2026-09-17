@@ -112,6 +112,7 @@
   }
 
   function extractSubmissionId(qrData) {
+
     const text = String(qrData).trim();
     const patterns = [
       /submission\/(\d+)/i,
@@ -119,6 +120,7 @@
       /https?:\/\/[^\s]+\/(\d+)(?:[/?#]|$)/i,
       /^(\d+)$/
     ];
+    console.log('Full QR data:', qrData);
     for (const pattern of patterns) {
       const match = text.match(pattern);
       if (match) return match[1];
